@@ -13,8 +13,8 @@ This is the repo for the deep learning image restoration model proposed in S. LÃ
 
 # Installation
 ```console
-conda create -n ddnet python=3.8 opencv scipy scikit-image
-conda activate ddnet_enhance
+conda create -n ddnet python=3.8 scipy scikit-image
+conda activate ddnet
 conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11.0 -c pytorch
 pip install pytorch_msssim
 ```
@@ -22,7 +22,7 @@ pip install pytorch_msssim
 # Usage
 First, activate conda environment: 
 ```console 
-conda activate ddnet_enhance 
+conda activate ddnet
 ```
 
 ## Data preparation training

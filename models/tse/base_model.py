@@ -455,7 +455,7 @@ class BaseModel(nn.Module):
         torch.save(state, path)
 
     def load(self, path):
-        state = torch.load(path)
+        state = torch.load(path)#, map_location=torch.device('cpu'))
         self.load_state_dict(state)
 
     def set_trainable(self, trainable):

@@ -4,7 +4,7 @@ from os.path import basename, isdir, join, splitext
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-import cv2
+from PIL import Image
 
 import scipy.io
 
@@ -243,7 +243,16 @@ class RestorationsEvalColorDataset(Dataset):
         file = self.filelist[idx]
         thename, ext = splitext(basename(file))
         file_psf = join(self.psf_dir, thename+'_psf.npy')
-        y = rgb2ycbcr(cv2.imread(file, 1).transpose((2,0,1))[::-1])
+        #y = rgb2ycbcr(cv2.imread(file, 1).transpose((2,0,1))[::-1])
+        y = np.asarray(Image.open(file))
+        
+        if len(y.shape) < 3:
+            y = np.expand_dims(y, axis=1)
+            y = np.concatenate([y, y, y], axis=1)
+        else:
+            y = y.transpose((2, 0, 1))
+        
+        y = rgb2ycbcr(y)
         y = torch.from_numpy(y)
         y_color = y[1:].contiguous()
         y = y[:1].contiguous()

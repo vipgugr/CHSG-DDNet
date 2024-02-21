@@ -3,13 +3,13 @@ from os import makedirs
 from os.path import join, basename, splitext
 from time import time
 
-import cv2
+from PIL import Image
 import numpy as np
 import torch
 from torch.autograd import Variable
 from skimage.color import ycbcr2rgb
 
-from models.aff import  AffMDGeneratorColor, AffMDGeneratorY, DenseResAffMD, AAplusModel
+from models.aff import ColorWrapper, AffWrapper, DDNet, AAplusModel
 from models.fft_blur_deconv_pytorch import psf2otf
 from models.fade2black_matrix import FadeToBlackMatrix
 from utils.read import RestorationsEvalColorDataset
@@ -51,9 +51,10 @@ class Preprocess_deblur():
                                           epsilon=config.EPS_WIENER)
             x_r       = amortised_model.Aplus_only(y)
             x_r_color = amortised_model.Aplus_only(y_color)
-            data = [amortised_model, x_r, x_r_color, y, y_color, or_size]
+            data       = [amortised_model, x_r, y]
+            data_color = [x_r_color, y_color]
 
-            return data, 0, psf_size
+            return data, data_color, 0, psf_size
 
 
 if __name__ == '__main__':
@@ -74,18 +75,25 @@ if __name__ == '__main__':
     '''
     Make model
     '''
-    #Generator f_theta(x)
-    G = DenseResAffMD(channels_c=1, n_features=config.N_FEATURES, nb=config.N_DENSE_BLOCKS)
-
     #Generator g_theta(x)
-    G = AffMDGeneratorY(G)
+    G = AffWrapper(
+            DDNet(
+                channels_c=1, 
+                n_features=config.N_FEATURES, 
+                nb=config.N_DENSE_BLOCKS, 
+                df_size=config.DYNAMIC_FILTER_SIZE
+            ), 
+        df_size=config.DYNAMIC_FILTER_SIZE
+    )
 
-    #Generator f_theta(x)
-    Gc = DenseResAffMD(channels_c=2, n_features=config.N_FEATURES, nb=config.N_DENSE_BLOCKS_COLOR)
-
-    #Generator g_theta(x)
-    Gc = AffMDGeneratorColor(Gc)
-
+    #Generator color
+    Gc = ColorWrapper(
+            DDNet(channels_c=2, 
+                  n_features=config.N_FEATURES, 
+                  nb=config.N_DENSE_BLOCKS_COLOR
+            )
+        )
+    
     G.load(w_path_save)
     Gc.load(w_color_path_save)
 
@@ -118,17 +126,17 @@ if __name__ == '__main__':
     Test model
     '''
     #Preprocessing of test data
-    preprocess_test = Preprocess_deblur(epsilon=config.EPS_WIENER)
+    preprocess_test = Preprocess_deblur()
 
     m_time = 0.0
 
     for i in range(len(test_dataset.filelist)):
         data = [d.unsqueeze(dim=0) for d in test_dataset.__getitem__(i)]
-        data, label, psf_size = preprocess_test(data, device)
+        data_y, data_color, label, psf_size = preprocess_test(data, device)
 
         start_time = time()
-        p = G(data)
-        p_color = Gc(data)
+        p, _ = G(data_y)
+        p_color, _ = Gc(data_color)
         m_time += time()-start_time
         x_r_red = p.squeeze(dim=0).cpu().detach();
         x_r_red_color = p_color.squeeze(dim=0).cpu().detach();
@@ -137,9 +145,9 @@ if __name__ == '__main__':
         f = test_dataset.__filename__(i)
         name = splitext(basename(f))[0]
         fname = join(path_out, name+'_ddnet.png')
-        img = np.clip(ycbcr2rgb(np.clip(x_r_red.numpy().transpose((1, 2, 0)) * 255, 0, 255)) * 255, 0, 255)[:, :, ::-1]
-        img = img.astype('int')
-        cv2.imwrite(fname, img)
+        img = np.clip(ycbcr2rgb(np.clip(x_r_red.numpy().transpose((1, 2, 0)) * 255, 0, 255)) * 255, 0, 255)#[:, :, ::-1]
+        img = img.astype(np.uint8)
+        Image.fromarray(img).save(fname)
 
     m_time /= float(len(test_dataset.filelist))
 

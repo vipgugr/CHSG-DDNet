@@ -5,7 +5,7 @@ import torch
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from cv2 import imwrite
+#from cv2 import imwrite
 
 
 class console_logger():
@@ -129,6 +129,7 @@ class plot_logger():
         self.plot(epoch_log, 'iter', 'iters_info', path)
 
 
+'''
 class image_logger():
     def __init__(self, file_path):
         self.file_path = file_path
@@ -153,3 +154,4 @@ class image_logger():
 
         for i, im in enumerate(images):
             imwrite(join(outdir, '%04d.png'%i), im)
+'''

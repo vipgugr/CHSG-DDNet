@@ -53,8 +53,8 @@ if __name__ == '__main__':
     batch_size = {}
     batch_size['train'] = config.BATCH_SIZE
     batch_size['val'] = 1
-    torch.backends.cudnn.benchmark = True
-    torch.set_num_threads(4)
+    #torch.backends.cudnn.benchmark = True
+    #torch.set_num_threads(4)
 
     '''
     Read train and test data
