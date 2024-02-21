@@ -4,7 +4,6 @@ This is the repo for the deep learning image restoration model proposed in S. LÃ
 # Requirements
 * Python >= 3.8
 * Numpy
-* Opencv
 * Scikit-image
 * Pytorch == 1.7.1
 * pytorch_msssim
