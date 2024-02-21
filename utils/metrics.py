@@ -19,8 +19,8 @@ class PSNRWrapper():
 
 
 class SSIMWrapper():
-    def __init__(self, border=4):
-        self.ssim_module = SSIM(data_range=1.0, size_average=True, channel=1, nonnegative_ssim=True).cuda()
+    def __init__(self, border=4, channel=1):
+        self.ssim_module = SSIM(data_range=1.0, size_average=True, channel=channel, nonnegative_ssim=True).cuda()
         self.border = border
 
     def __call__(self, x, y):

@@ -130,7 +130,7 @@ if __name__ == '__main__':
             {
               'eval_loss': CharbonnierLoss(eps=config.EPS), 
               'eval_PSNR': PSNRWrapper(config.BORDER),
-              'eval_SSIM': SSIMWrapper(config.BORDER)
+              'eval_SSIM': SSIMWrapper(config.BORDER, channel=2)
             },
           log_interval=30,
           step_loggers=[console_logger(['step',  'train']),],
