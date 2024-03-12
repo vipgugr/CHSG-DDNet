@@ -29,8 +29,12 @@ class Preprocess_deblur():
             hi_ext = (hi//4 + 1)*4-hi
             wi_ext = (wi//4 + 1)*4-wi
             or_size = [hi_ext, wi_ext]
-            y = torch.nn.functional.pad(y, (config.BORDER,config.BORDER+wi_ext,config.BORDER,config.BORDER+hi_ext), mode='replicate')
-            y_color = torch.nn.functional.pad(y_color, (config.BORDER,config.BORDER+wi_ext,config.BORDER,config.BORDER+hi_ext), mode='replicate')
+            l_pad = config.BORDER
+            r_pad = config.BORDER+wi_ext
+            u_pad = config.BORDER
+            b_pad = config.BORDER+hi_ext
+            y = torch.nn.functional.pad(y, (l_pad, r_pad, u_pad, b_pad), mode='replicate')
+            y_color = torch.nn.functional.pad(y_color, (l_pad, r_pad, u_pad, b_pad), mode='replicate')
 
             H = psf2otf(psf, (y.size(2)+config.MAX_PSF_SIZE*2, y.size(3)+config.MAX_PSF_SIZE*2)).float()
             H = H.squeeze().unsqueeze(dim=0).unsqueeze(dim=1)
@@ -54,7 +58,7 @@ class Preprocess_deblur():
             data       = [amortised_model, x_r, y]
             data_color = [x_r_color, y_color]
 
-            return data, data_color, 0, psf_size
+            return data, data_color, 0, psf_size, [l_pad, r_pad, u_pad, b_pad]
 
 
 if __name__ == '__main__':
@@ -132,15 +136,16 @@ if __name__ == '__main__':
 
     for i in range(len(test_dataset.filelist)):
         data = [d.unsqueeze(dim=0) for d in test_dataset.__getitem__(i)]
-        data_y, data_color, label, psf_size = preprocess_test(data, device)
-
+        data_y, data_color, label, psf_size, pads = preprocess_test(data, device)
+        
         start_time = time()
         p, _ = G(data_y)
         p_color, _ = Gc(data_color)
         m_time += time()-start_time
         x_r_red = p.squeeze(dim=0).cpu().detach();
         x_r_red_color = p_color.squeeze(dim=0).cpu().detach();
-        x_r_red = torch.cat([x_r_red, x_r_red_color], dim=0)
+        l_pad, r_pad, u_pad, b_pad = pads
+        x_r_red = torch.cat([x_r_red, x_r_red_color], dim=0)[..., u_pad:-b_pad, l_pad:-r_pad].contiguous()
 
         f = test_dataset.__filename__(i)
         name = splitext(basename(f))[0]
